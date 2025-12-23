@@ -1,0 +1,12 @@
+## Architektur
+
+- Apache liefert HTML und JavaScript aus
+- Node.js betreibt ausschließlich den WebSocket-Server
+- Apache fungiert als Reverse Proxy für WebSockets
+
+Apache muss als Reverse Proxy für WebSockets konfiguriert sein.
+Erforderliche Module:
+- proxy
+- proxy_http
+- proxy_wstunnel
+- rewrite

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Einkauf</title>
+    <link rel="icon" type="image/png" href="bilder/shopping64.png">
+    <link rel="stylesheet" href="css/einkauf.css">
+    <script src="jsClient/einkauf.js"></script>
+</head>
+<body>
+  <!-- kleines Projekt fuer eine Einkaufsliste 
+       umstellung von AJAX auf WebSocket Kommunikation, einkauf -> einkaufWS
+      -->
+  <div id="error" class="hidden">
+    Probleme: <span id="errorText"></span>
+    <button id="berrorOk"> ok </button>
+  </div>
+  <div id="info" class="hidden">
+    Info: <span id="infoText"></span>
+    <button id="binfoOk"> ok </button>
+  </div>
+  <form id="fSettings" class="hidden">
+    <!-- ueber fremden Server nach gedacht, aber das duerfte Aerger mit same origin geben?
+      <div><label for="iServer">Server:</label><input placeholder="https://xyz" id="iServer" type="text"></div>
+    -->
+    <!-- fsettings div ist flex container -->
+      <div><label for="iListe">Liste:</label><input id="iListe" placeholder = "listName" type="text"></div>      
+      <div><label for="iToken">Token:</label><input id="iToken" type="text" readonly>  (nicht editierbar)</div>
+      <div><button type="button" id="bsNew"> new </button>
+      <button type="button" id="bsClear"> Clear Local </button> <!-- manchmal im Entwicklungsprozess sinnvoll-->
+      <button type="button" id="bsCancel"> Cancel </button>
+      <button type="button" id="bsSave"> Save </button></div>
+      <div><div class="center">(Clear Local i.d. Regel unnötig)</div></div>
+  </form>
+  <main>
+    <h1>Einkauf
+        <button type="button" id="bSettings">conf</button>
+        <!-- <button type="button" id="bSave">save</button> -->
+        <button type="button" id="bReload">reload</button>
+        <button type="button" id="bSort">sort</button>
+        <button type="button" id="bDrag">drag</button></h1>
+    <form>
+        <input id="iAddTopic" type="text">
+        <button type="button" id="bAdd">Add</button>
+    </form>
+    <ul id="list">
+        
+    </ul>
+  </main>
+</body>
+</html>

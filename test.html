@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>WebSocket Test</title>
+</head>
+<body>
+<script>
+  const ws = new WebSocket("ws://localhost:8080");
+
+  ws.onopen = () => {
+    console.log("Verbunden");
+    ws.send(JSON.stringify({
+      type: "ping"
+    }));
+
+  };
+
+  ws.onmessage = (e) => {
+    console.log("Antwort:", e.data);
+  };
+
+  ws.onclose = () => {
+    console.log("Verbindung geschlossen");
+  };
+</script>
+</body>
+</html>

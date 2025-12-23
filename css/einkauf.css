@@ -1,0 +1,136 @@
+* {
+    box-sizing: border-box;
+}
+body {
+    min-height: 100vh; /* gesamter viewport */
+    margin: 0px;
+    padding: 0.0rem 0.5rem;
+    border: 2px solid black;
+    background-color: #89B2F420;
+}
+/* opacity Hintergrundbild geht nicht, daher ein wenig tricksen */
+/*nur einmal h1, davor element mit background einfuegen */
+/*gefaellt mir aber nicht :-( und ist auch so noch nicht fertig, da die anderen Elemente 
+  einen z-index von 2 oder mehr brauchen, sonst überdeckt das Bild die Buttons -> sie reagieren nicht mehr
+h1:before { 
+    content: ' ';
+    display: block;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    opacity: 0.2;
+    background-image: url('../bilder/pexels-yusuf-celik-12974968.jpg');  Foto von Yusuf Çelik von Pexels 
+    background-repeat: no-repeat;
+    background-position: 50% 0;
+    background-size: cover;
+} */
+
+#error {
+    border: 5px outset red;
+    background-color: lightcoral;
+    font-weight: bold;
+    margin: 2em;
+    padding: 2em;
+}
+#info {
+    border: 5px outset rgb(56, 54, 120);
+    background-color: rgb(128, 240, 227);
+    font-weight: bold;
+    margin: 2em;
+    padding: 2em;
+}
+
+h1 {
+    font-size: 100%;
+}
+input {
+    padding: 0.2rem 0.8rem;
+}
+button {
+    padding: .2rem .8rem;
+    background: #d7e8f7 linear-gradient(#9cddf5, #1414a0);
+    border: thin solid blue;
+    /*border-radius:  .4rem .4rem;*/ 
+    /*box-shadow: 0 .2rem .4rem gray;
+    */
+    color: rgb(220, 220, 221);
+    margin: 0rem 0rem 0rem 0.5rem;
+    font-size: 95%;
+}
+#bSave.changed::after {
+    content: ' * ';
+}
+#bSave.changed {
+    font-weight: bold;
+}
+
+
+
+ul {
+    list-style: none;
+    margin: 1rem 0.2rem;
+    padding: 1rem 1rem;
+    border: 1px solid blue;
+}
+.hidden {
+    display: none;
+}
+.greyed {
+    opacity: 0.2;
+}
+
+.center{
+    margin-left: auto;
+    margin-right: auto;
+}
+
+:checked  + span{ /*first span after checked input */
+    color: grey;
+ }
+:checked {
+    accent-color: gainsboro;
+}
+ li > div {
+    display: flex;
+    justify-content: space-between;  
+}
+
+#fSettings {
+    margin-top: 1rem;
+    border: 1px solid black;
+}
+#fSettings > div {
+   display: flex;
+   justify-content: space-between;
+   margin: .5rem;
+}
+#fSettings div > input{
+    width: 95%;
+}
+#fSettings div label {
+    width: 8rem;  /*in Kombination oben mit width 80% gut geeignet, input wird kleiner, lässt platz fuer label */
+}
+#fSettings #liSave { /* label enthaelt checkbox, breiter */
+    width: 30rem;
+}
+#fSettings button {
+    width: 40%;
+}
+#fSettings #iToken {
+    width: 50%;
+}
+input[type="checkbox"]
+{
+    transform: scale(1.5); /*scale ist guenstiger, da die Beschriftung besser aussieht */
+    margin-right: 1rem;
+    -webkit-transform: scale(1.5); /*die hat vs code hinzugefügt */
+    -moz-transform: scale(1.5);
+    -ms-transform: scale(1.5);
+    -o-transform: scale(1.5);
+}
+label {
+    margin-top: 0.3rem; /*verstehe ich nicht, der label mit der inputbox klebt oben an der umgebenden Box, dass ist ein div */
+}
