@@ -11,7 +11,12 @@
 */
 let ws = null;
 let reconnectTimer = null;
-const WS_URL = `ws://${location.host}/ws`; 
+
+const WS_URL =
+    (location.protocol === "https:" ? "wss://" : "ws://") +
+    location.host +
+    "/ws";
+
 
 //aus js nachladen ist komplizierter:
 
@@ -23,34 +28,31 @@ document.head.appendChild(dragScript);
 //websocket netzwerk funktionen
 function connect()
 {    
-    if (!ws)
-    {    
-        ws = new WebSocket(WS_URL);
-        ws.onopen = () =>
-        {
-            console.log("WS connected");
-            ws.send(JSON.stringify({
-                type: "hello",
-                payload:
-                {
-                    token: localStorage.getItem("token"),
-                    list:  localStorage.getItem("liste")    
-                }
-            }));
-        };
-        ws.onmessage = onMessage;
-        ws.onclose = () =>
-        {
-            console.log("WS closed");
-            ws = null;
-            scheduleReconnect();
-        };
-        ws.onerror = () =>
-        {
-            // Fehler führt immer zu close
-            ws?.close();
-        };
-    }
+    ws = new WebSocket(WS_URL);
+    ws.onopen = () =>
+    {
+        console.log("WS connected");
+        ws.send(JSON.stringify({
+            type: "hello",
+            payload:
+            {
+                token: localStorage.getItem("token"),
+                list:  localStorage.getItem("liste")    
+            }
+        }));
+    };
+    ws.onmessage = onMessage;
+    ws.onclose = () =>
+    {
+        console.log("WS closed");
+        ws = null;
+        scheduleReconnect();
+    };
+    ws.onerror = () =>
+    {
+        // Fehler führt immer zu close
+        ws?.close();
+    };
 }
 
 function scheduleReconnect()
@@ -108,7 +110,6 @@ function onMessage(event)
 }
 function handleState(payload)
 {
-    console.log("handleState:", payload);
     if (!payload || !Array.isArray(payload.entries))
     {
         error("Ungültiger State vom Server", true, 5000);

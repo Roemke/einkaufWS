@@ -54,7 +54,10 @@ for (const listName in listStore.getAll())
 // WebSocket-Server starten
 // ------------------------------------------------------------
 
-const wss = new WebSocket.Server({ port: 8080 });
+const wss = new WebSocket.Server({
+  host: "127.0.0.1",
+  port: 8080
+});
 
 console.log("WebSocket-Server läuft auf ws://127.0.0.1:8080");
 

@@ -1,0 +1,22 @@
+#beispiel-Datei /etc/systemd/system/einkaufws.service
+[Unit]
+Description=Einkauf WebSocket Server
+After=network.target
+
+[Service]
+Type=simple
+User=einkaufws
+Group=einkaufws
+WorkingDirectory=/var/www/html/einkaufWS
+Environment=NODE_ENV=production
+ExecStart=ExecStart=/usr/local/bin/node jsServer/index.js
+#hatte mehrere node versionen, brauche v20.12.2
+Restart=on-failure
+RestartSec=2
+
+# ein bisschen einschränken
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
