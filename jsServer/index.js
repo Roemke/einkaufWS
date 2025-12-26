@@ -106,47 +106,56 @@ wss.on("connection", (ws) =>
 
 function handleMessage(ws, msg)
 {
-  let response =
-  {
-      type: "error",
-      message: "Unknown server state"
-  };
+  let listName = ws.context.list;
+  let result = {
+    response : {
+        type: "error",
+        message: "Unknown server state"
+      },
+    broadcast: null
+  }
   //erstmal nur hello ohne auth möglich
   if (msg.type == "hello")
-    response = handleHello(ws, msg.payload);
+    result = handleHello(ws, msg.payload);
   else  
   { //alle anderen nur mit auth
     if (ws.context && ws.context.token &&  ws.context.list)
     {
-      const listName = ws.context.list;
+      
       switch (msg.type)
       {
         case "load"://fuer das Neuladen der Liste
-          response = handleLoad(ws);
+          result = handleLoad(ws);
           break;
         case "save"://speichern der Liste sollte unnötig sein
-          response = handleSave(ws, msg.payload);
+          result = handleSave(ws, msg.payload);
           break;
         case "sort": //sortieren der Liste
-          response = handleSort(ws);
+          result = handleSort(ws);
           break;
         case "toggle": //umschalten eines Eintrags
-          response = handleToggle(ws, msg.payload);
+          result = handleToggle(ws, msg.payload);
           break;
         case "add": //neu
-            response = handleAdd(ws, msg.payload);
+            result = handleAdd(ws, msg.payload);
             break;
         case "delete": //löschen
-          response = handleDelete(ws, msg.payload);
+          result = handleDelete(ws, msg.payload);
           break;
         default:
-          response = {type: "error", message: "Unknown message type: " + msg.type };
+          result.response = {
+            type: "error",
+            message: "Unknown message type: " + msg.type
+        };
+        
       }//end switch 
-    }
+    }//end if auth ok
     else
-      response = { type: "error", message: "Don't hack - not authenticated" };    
+      result.response = { type: "error", message: "Don't hack - not authenticated" };    
   } //end else - not hello
-  wsSend(ws, response);
+  wsSend(ws, result.response);
+  if (result.broadcast)
+    broadcast(ws.context.list,result.broadcast);//dann der broadcast
 }
 
 // ------------------------------------------------------------
@@ -245,11 +254,19 @@ function handleHello(ws, payload)
     else
       payloadResponse =  { type: "error", message: "Invalid hello payload, token and Listname required" };
   
-    return payloadResponse;
+    return {
+      response: payloadResponse,
+      broadcast: null
+    }
 }
 
 function handleSort(ws)
 {
+  let result =
+    {
+        response: {type: "sortOk"},
+        broadcast: null
+    };
   const listName = ws.context.list;
   const items = state.lists[listName].items;
 
@@ -262,7 +279,7 @@ function handleSort(ws)
 
   state.lists[listName].revision++;
   saveScheduler.scheduleSave(listName, state);
-  const bcData =  {
+  result.broadcast =  {
     type: "state",
     payload:
     {
@@ -271,23 +288,26 @@ function handleSort(ws)
       entries: items
     }
   };
-  broadcast(listName, bcData);
-  return {
-        type: "sortOk"
-  };
+  return result;
+  
 }
 function handleAdd(ws, payload)
 {
-    let response = null;
+    let result =
+    {
+        response: null,
+        broadcast: null
+    };
     const listName = ws.context.list;
     console.log("handleAdd for list:", listName);
     const listState = state.lists[listName];
     if (!payload || !payload.text || payload.text.trim() === "")
     {
-        return {
+        result.response =  {
             type: "error",
             message: "Missing text"
         };
+        return result;
     }
 
     const newText = payload.text.trim();
@@ -303,7 +323,7 @@ function handleAdd(ws, payload)
         const oldItem = listState.items[oldIndex];
         listState.items.splice(oldIndex, 1);
 
-        // optional: Delete-Event für alte UUID
+        // optional: Delete-Event für alte UUID, lasse das mal als sofortigen broadcast
         broadcast(listName, { //nicht erhöhen, da gleich ein neuer Eintrag folgt
             type: "itemDeleted",
             payload: {
@@ -329,28 +349,32 @@ function handleAdd(ws, payload)
     // 5) speichern (debounced)
     saveScheduler.scheduleSave(listName, state);
 
-    // 6) Event senden
-    broadcast(listName, {
+    // 6) bc speichern
+    result.broadcast =  {
         type: "itemAdded",
         payload: {
             list: listName,
             item: item,
             revision: state.lists[listName].revision
         }
-    });
+    };
 
     // 7) direkte Antwort an Sender
-    response = {
+    result.response = {
         type: "addOk"
     };
 
-    return response;
+    return result;
 }
 
 
 function handleToggle(ws, payload)
 {
-    let response = null;
+    let result =
+    {
+        response: null,
+        broadcast: null
+    };
     const listName = ws.context.list;
     const id = payload?.id || null;
     if (id)
@@ -377,7 +401,7 @@ function handleToggle(ws, payload)
             }
             state.lists[listName].revision++;
             saveScheduler.scheduleSave(listName, state);
-            broadcast(listName,
+            result.broadcast =
             {
                 type: "itemToggled",
                 payload:
@@ -387,12 +411,12 @@ function handleToggle(ws, payload)
                   id: item.id, //hier reicht die id                    
                   done: item.done
                 }
-            });
-            response = { type: "toggleOk" };
+            };
+            result.response = { type: "toggleOk" };
         }
         else
         {
-            response =
+            result.response =
             {
                 type: "error",
                 message: "Item not found"
@@ -401,18 +425,22 @@ function handleToggle(ws, payload)
     }
     else
     {
-        response =
+        result.response =
         {
             type: "error",
             message: "Missing id"
         };
     }
-    return response;
+    return result;
 }
 
 function handleDelete(ws, payload)
 {
-    let response = null;
+    let result =
+    {
+        response: null,
+        broadcast: null
+    };    
     const listName = ws.context.list;
     const id = payload?.id || null;
 
@@ -425,7 +453,7 @@ function handleDelete(ws, payload)
             items.splice(index, 1);
             state.lists[listName].revision++;
             saveScheduler.scheduleSave(listName, state);
-            broadcast(listName,
+            result.broadcast = 
             {
                 type: "itemDeleted",
                 payload:
@@ -434,37 +462,50 @@ function handleDelete(ws, payload)
                   revision: state.lists[listName].revision,
                   id: id //auch hier reicht die id
                 }
-            });
-            response = { type: "deleteOk" };
+            };
+            result.response = { type: "deleteOk" };
         }
         else        
-          response =   {  type: "error",  message: "Item not found" };        
+          result.response =   {  type: "error",  message: "Item not found" };        
     }
     else    
-      response = { type: "error", message: "Missing id"};
+      result.response = { type: "error", message: "Missing id"};
     
 
-    return response;
+    return result;
 }
 function handleLoad(ws)
 {
-  return {
+    const listName = ws.context.list;
+    let result =
+    {
+        response: null,
+        broadcast: null
+    };
+    result.response = 
+    {
       type: "state",
       payload:
       {
           list: ws.context.list,
-          revision: state.lists[LIST_NAME].revision,
-          entries: state.lists[LIST_NAME].items
+          revision: state.lists[listName].revision,
+          entries: state.lists[listName].items
       }
-  };
+    };
+    return result;
 }
 
 function handleSave(ws, payload)
 {
-  return {
-        type: "error",
-        message: "Save not required/(yet) implemented"
-    };
+  let result =
+  {
+     response: {
+       type: "error",
+       message: "Save not required/(yet) implemented"
+       },
+     broadcast: null
+  };
+  return result ;
 }
 
 // ------------------------------------------------------------
@@ -487,6 +528,8 @@ function generateId()
 
 function broadcast(listName,obj)
 {
+    if (! obj || !listName) 
+	    return;
     const data = JSON.stringify(obj);
 
     wss.clients.forEach(ws =>
