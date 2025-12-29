@@ -16,7 +16,7 @@ let configAvailable = false;
 const WS_URL =
     (location.protocol === "https:" ? "wss://" : "ws://") +
     location.host +
-    "/ws-dev";
+    "/ws";
 
 
 //aus js nachladen ist komplizierter:
