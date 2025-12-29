@@ -11,11 +11,12 @@
 */
 let ws = null;
 let reconnectTimer = null;
+let configAvailable = false;
 
 const WS_URL =
     (location.protocol === "https:" ? "wss://" : "ws://") +
     location.host +
-    "/ws";
+    "/ws-dev";
 
 
 //aus js nachladen ist komplizierter:
@@ -26,21 +27,10 @@ dragScript.src = 'jsClient/draggable.js';
 document.head.appendChild(dragScript);
 
 //websocket netzwerk funktionen
+
 function connect()
 {    
     ws = new WebSocket(WS_URL);
-    ws.onopen = () =>
-    {
-        console.log("WS connected");
-        ws.send(JSON.stringify({
-            type: "hello",
-            payload:
-            {
-                token: localStorage.getItem("token"),
-                list:  localStorage.getItem("liste")    
-            }
-        }));
-    };
     ws.onmessage = onMessage;
     ws.onclose = () =>
     {
@@ -53,6 +43,19 @@ function connect()
         // Fehler führt immer zu close
         ws?.close();
     };
+    ws.onopen = () =>
+    {
+        ws.send(JSON.stringify({
+            type: "hello",
+            payload:
+            {
+                token: localStorage.getItem("token"),
+                list:  localStorage.getItem("liste")    
+            }}));
+        console.log("WS connected");
+    } ;
+    
+    
 }
 
 function scheduleReconnect()
@@ -85,7 +88,7 @@ function onMessage(event)
         case "state": //wird auch gesendet, wenn sortiert wurde
             handleState(msg.payload);
             break;
-        case "addOk" : case "toggleOk": case "deleteOk": case "sortOk":
+        case "addOk" : case "toggleOk": case "deleteOk": case "sortOk": case "toggleRegisterOk":
             console.log("received simple ok: ", msg.type);
             break;
         case "itemAdded":
@@ -97,10 +100,19 @@ function onMessage(event)
         case "itemDeleted":
             handleItemDeleted(msg.payload);
             break;
+        case "registerListAllowed":
+            handleRegisterListedAllowed(msg.payload);
+            break;
         case "registered":
             info("Token erfolgreich registriert", true, 5000);
             break;    
         case "error":
+            if (msg.message && msg.message.indexOf("token invalid, Registration disabled")!=-1)
+            {   
+                configAvailable = false;
+                document.getElementById("settingTab").click();
+                console.log("confAvailable to false");
+            }
             error(msg.message || "Serverfehler", true, 5000);
             break;
 
@@ -130,8 +142,32 @@ function handleState(payload)
             true
         );
     });
+    //setze registerAllowd-Status
+    const container = document.getElementById('iListStatus');
+    container.innerHTML = "status unkown"; //standard
+    const bsToggle = document.getElementById('bsToggleRegister');
+    bsToggle.className = "hidden"; 
+    if ("registerAllowed" in payload)
+    {    
+        bsToggle.classList.remove('hidden');
+        container.innerHTML =
+                     payload.registerAllowed ? "register allowed" : "register denied";
+    }
 }
+function handleRegisterListedAllowed(payload)
+{
+    const container = document.getElementById('iListStatus');
+    container.innerHTML = "status unkown"; //standard
+    const bsToggle = document.getElementById('bsToggleRegister');
+    bsToggle.className = "hidden"; 
 
+    if ("registerAllowed" in payload)
+    {    
+        bsToggle.classList.remove('hidden');
+        container.innerHTML =
+                     payload.registerAllowed ? "register allowed" : "register denied";
+    }
+}
 function handleItemAdded(payload)
 {
     if (!payload || !payload.item)
@@ -333,8 +369,8 @@ function moveDown(li)
     //console.log(childs[0]);
     for (const element of childs) //problem: finde das element selbst
     {
-        if (element.firstChild.firstChild.firstChild.checked
-            && element.firstChild.firstChild.firstChild != li.firstChild.firstChild.firstChild )
+        if (element.firstChild.firstChild.firstChild.checked &&
+             element.firstChild.firstChild.firstChild != li.firstChild.firstChild.firstChild )
         {
             target = element;
             break;
@@ -414,21 +450,16 @@ function registerListenerEtc()
 function addSettingsListener()
 {
     //fuer die Settings
-    let bSettings = document.getElementById("bSettings");
     let bsSave = document.getElementById("bsSave");
     let bsCancel = document.getElementById("bsCancel");
     let bsClear = document.getElementById("bsClear");
     let bsNew = document.getElementById("bsNew");
+    let bsToggleRegister = document.getElementById("bsToggleRegister");
     let fSettings = document.getElementById("fSettings");
-    let main = document.getElementsByTagName("main")[0];
     let liste = localStorage.getItem("liste");
 
-    bSettings.addEventListener("click", (e) => {
-        e.preventDefault();
-        document.getElementById("iListe").value=localStorage.getItem("liste");
-        document.getElementById("iToken").value=localStorage.getItem("token");
-        fSettings.classList.remove("hidden");
-        main.classList.add("hidden");
+    bsToggleRegister.addEventListener("click", () => {
+       wsSend("toggleRegister",{list: localStorage.getItem("liste")}); 
     });
     bsNew.addEventListener("click", (e) => {
         e.preventDefault();
@@ -439,7 +470,9 @@ function addSettingsListener()
     bsClear.addEventListener("click", (e) => {
         e.preventDefault();
         localStorage.clear();
+        configAvailable = false;
         liste = "";
+        document.getElementById("list").innerHTML="";
         document.getElementById("iListe").value="";
         token = generateToken(32); //neues generieren, erst speichern, wenn registriert 
         document.getElementById("iToken").value=token;
@@ -448,14 +481,15 @@ function addSettingsListener()
     bsSave.addEventListener("click", (e) =>
     {
         e.preventDefault();
-
         const liste = document.getElementById("iListe").value.trim();
         const oldListe = localStorage.getItem("liste");
+        const oldToken = localStorage.getItem("token");
         let token = document.getElementById("iToken").value;
 
         if (liste === "")
         {
             error("Liste benötigt", true, 5000);
+            configAvailable = false;
             return;
         }
 
@@ -467,11 +501,9 @@ function addSettingsListener()
         }
 
         // Keine Änderung → nur UI umschalten
-        if (oldListe === liste)
+        if (oldListe === liste && oldToken === token)
         {
             info("Keine Änderung vorgenommen", true, 3000);
-            main.classList.remove("hidden");
-            fSettings.classList.add("hidden");
             return;
         }
 
@@ -481,26 +513,26 @@ function addSettingsListener()
 
         info("Einstellungen gespeichert, verbinde neu …", false, 3000);
 
-        // UI umschalten
-        main.classList.remove("hidden");
-        fSettings.classList.add("hidden");
-
         // UI-Listener einmalig sicherstellen
-        addStandardListener();
+        //addStandardListener();
         //liste leeren, nein sollte nicht nötig sein
         //document.getElementById("list").innerHTML = "";
         // Reconnect erzwingen → hello → Full-State
         if (ws)
             ws.close();
-        
+         init();
+         connect();
+         document.getElementById("defaultTab").click();
     });
 
     bsCancel.addEventListener("click",(e) => {
         e.preventDefault();
         //server = localStorage.getItem("server");
-        liste = localStorage.getItem("liste");
-        main.classList.remove("hidden");
-        fSettings.classList.add("hidden");
+        iListe.value = localStorage.getItem("liste");
+        iToken.value = localStorage.getItem("token");
+        if (ws)
+            ws.close();
+        document.getElementById("defaultTab").click();
     });
 
     //infofelder
@@ -565,14 +597,13 @@ function addStandardListener()
     //only used here:
     function dragPressed()
     {
-        const bSettings = document.getElementById("bSettings");
         const iAddTopic = document.getElementById("iAddTopic");
         if (bDrag.innerText != 'done')
         {
             //liste abrufen
             const [todoEntries, doneEntries] = getDoneAndTodoEntries();
             bDrag.innerText = 'done';
-            dragPressed.elementDisabler = new EnDisabledElements([bAdd,bReload,bSort,bSettings,iAddTopic]);
+            dragPressed.elementDisabler = new EnDisabledElements([bAdd,bReload,bSort,iAddTopic]);
             dragPressed.elementDisabler.disable();
             dragPressed.DragItemsTodo = new Dragabble(todoEntries,"todo");
             dragPressed.DragItemsDone = new Dragabble(doneEntries,"done");
@@ -627,7 +658,7 @@ function addStandardListener()
     //clone sie - kann auch direkt ausgrauen und die Listener sind weg. Verberge die originale
     class EnDisabledElements
     {
-        #elementClones;
+        #elementClones; //privat elements with #
         #elements;
         constructor (elements)
         {
@@ -667,16 +698,35 @@ function addStandardListener()
         }
     }
 }
+function openTab(evt, tabName) {
+    let i, tabcontent, tablinks;
+    if (!configAvailable)
+        tabName = "setup";
+    let specials = document.getElementById("specialsEinkauf");
+    tabcontent = document.getElementsByClassName("tabcontent");
+    for (i = 0; i < tabcontent.length; i++) { tabcontent[i].style.display = "none"; }
+    tablinks = document.getElementsByClassName("tablink");
+    for (i = 0; i < tablinks.length; i++) { tablinks[i].className = tablinks[i].className.replace(" active", ""); }
+    document.getElementById(tabName).style.display = "block";
+    evt.currentTarget.className += " active";
+    if (tabName==="einkauf")
+    {    
+        specials.classList.remove("hidden");
+    }
+    else
+        specials.classList.add("hidden");
+        
+}
 
-//window - alles geladen
-window.addEventListener("load", () =>
+function init() 
 {
     let liste = localStorage.getItem("liste");
     let token = localStorage.getItem("token");
     
     let fSettings = document.getElementById("fSettings");
     let main = document.getElementsByTagName("main")[0];
-
+    configAvailable = false;
+    document.getElementById("list").innerHTML = "";
     //kein token, generieren
     if (!token)
     {
@@ -684,17 +734,23 @@ window.addEventListener("load", () =>
         localStorage.setItem("token", token);    
     }
     document.getElementById("iToken").value=token;
-
-
     if (liste == null) //zwingend noetig, ein token gehoert zur Liste, bevor token registriert wird, muss die Liste da sein
     {
-        fSettings.classList.remove("hidden");
-        main.classList.add("hidden");
-        addSettingsListener();//im save-Bereich wird das token registriert
+        document.getElementById("settingTab").click();
     }
     else //alles da
     {
-        registerListenerEtc();
         connect();
-    }
+        configAvailable = true;
+    }    
+    return;
+}
+//window - alles geladen
+window.addEventListener("load", () =>
+{
+    //Tab-Funks anhängen
+    registerListenerEtc();
+    init();
+    if (configAvailable)
+     document.getElementById("defaultTab").click();//click ist angehängt in html
 });

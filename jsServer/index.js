@@ -40,6 +40,7 @@ const state =
 for (const listName in listStore.getAll())
 {
     const cfg = listStore.get(listName);
+    //console.log("found list File " + cfg.file);
     csvStore.ensureListFile(cfg.file);
     state.lists[listName] =
     {
@@ -47,26 +48,23 @@ for (const listName in listStore.getAll())
         revision: 0
     };
 }
-  
-  
-
 // ------------------------------------------------------------
 // WebSocket-Server starten
 // ------------------------------------------------------------
 
 const wss = new WebSocket.Server({
   host: "127.0.0.1",
-  port: 8080
+  port: 8081
 });
 
-console.log("WebSocket-Server läuft auf ws://127.0.0.1:8080");
+console.log("WebSocket-Server läuft auf ws://127.0.0.1:8081");
 
 // ------------------------------------------------------------
 // Verbindung
 // ------------------------------------------------------------
 
 wss.on("connection", (ws) =>
-{
+{ //jede Verbindung hat ein eigenes ws Objekt
     ws.context =
     {
         token: null,
@@ -121,7 +119,7 @@ function handleMessage(ws, msg)
   { //alle anderen nur mit auth
     if (ws.context && ws.context.token &&  ws.context.list)
     {
-      
+      console.log("Msg.: "+msg.type)
       switch (msg.type)
       {
         case "load"://fuer das Neuladen der Liste
@@ -140,8 +138,12 @@ function handleMessage(ws, msg)
             result = handleAdd(ws, msg.payload);
             break;
         case "delete": //löschen
-          result = handleDelete(ws, msg.payload);
-          break;
+            result = handleDelete(ws, msg.payload);
+            break;
+        case "toggleRegister": //status ändern
+            result = handleToggleRegister(ws,msg.payLoad);
+            break;
+              
         default:
           result.response = {
             type: "error",
@@ -222,7 +224,8 @@ function handleHello(ws, payload)
             {
               list: listName,
               revision: state.lists[listName].revision,
-              entries: state.lists[listName].items
+              entries: state.lists[listName].items,
+              registerAllowed: listCfg.registerAllowed 
             }
           };
         }//sonst token registrieren, wenn erlaubt
@@ -257,7 +260,7 @@ function handleHello(ws, payload)
     return {
       response: payloadResponse,
       broadcast: null
-    }
+    };
 }
 
 function handleSort(ws)
@@ -385,7 +388,7 @@ function handleToggle(ws, payload)
         {
             item.done = !item.done;
             //liste neu sortieren
-            let idx=items.indexOf(item)
+            let idx=items.indexOf(item);
             items.splice(idx, 1); //entfernen
             if (item.done)
             {
@@ -474,6 +477,27 @@ function handleDelete(ws, payload)
 
     return result;
 }
+function handleToggleRegister(ws, payload)
+{
+    let result =
+    {
+        response: null,
+        broadcast: null
+    }; 
+    const listName = ws.context.list;
+    let lCfg = listStore.get(listName);
+    if (!lCfg)
+    {
+        result.response =   {  type: "error",  message: "List not found" };
+        return;
+    }
+    lCfg.registerAllowed = !lCfg.registerAllowed;
+    listStore.save();
+    result.response = {type: "toggleRegisterOk"};
+    result.broadcast = {type: "registerListAllowed", payload: {registerAllowed: lCfg.registerAllowed }};
+    return result;
+}
+
 function handleLoad(ws)
 {
     const listName = ws.context.list;

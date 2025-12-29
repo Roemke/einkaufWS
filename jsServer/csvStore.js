@@ -3,6 +3,7 @@ const path = require("path");
 
 function ensureListFile(filePath)
 {
+    //console.log("ensureListFile " + filePath)
     if (!fs.existsSync(filePath))
     {
         fs.writeFileSync(filePath, "", { encoding: "utf8", flag: "wx" });

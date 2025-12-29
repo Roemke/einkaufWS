@@ -13,6 +13,20 @@
   <!-- kleines Projekt fuer eine Einkaufsliste 
        umstellung von AJAX auf WebSocket Kommunikation, einkauf -> einkaufWS
       -->
+  <!-- stelle mal das UI auf Tabs um -->
+  <div class="tab">
+    <div>
+      <button class="tablink" id="defaultTab" onclick="openTab(event, 'einkauf')">Einkauf</button>
+      <button class="tablink" id="settingTab" onclick="openTab(event, 'setup')">Help/Setup</button>
+    </div>
+    <div id="specialsEinkauf" class="tab">
+        <!-- <button type="button" id="bSave">save</button> -->
+        <button type="button" id="bReload">reload</button>
+        <button type="button" id="bSort">sort</button>
+        <button type="button" id="bDrag">drag</button>
+    </div>
+
+  </div>
   <div id="error" class="hidden">
     Probleme: <span id="errorText"></span>
     <button id="berrorOk"> ok </button>
@@ -21,33 +35,74 @@
     Info: <span id="infoText"></span>
     <button id="binfoOk"> ok </button>
   </div>
-  <form id="fSettings" class="hidden">
-    <!-- ueber fremden Server nach gedacht, aber das duerfte Aerger mit same origin geben?
-      <div><label for="iServer">Server:</label><input placeholder="https://xyz" id="iServer" type="text"></div>
-    -->
-    <!-- fsettings div ist flex container -->
-      <div><label for="iListe">Liste:</label><input id="iListe" placeholder = "listName" type="text"></div>      
-      <div><label for="iToken">Token:</label><input id="iToken" type="text" readonly>  (nicht editierbar)</div>
-      <div><button type="button" id="bsNew"> new </button>
-      <button type="button" id="bsClear"> Clear Local </button> <!-- manchmal im Entwicklungsprozess sinnvoll-->
-      <button type="button" id="bsCancel"> Cancel </button>
-      <button type="button" id="bsSave"> Save </button></div>
-      <div><div class="center">(Clear Local i.d. Regel unnötig)</div></div>
-  </form>
-  <main>
-    <h1>Einkauf
-        <button type="button" id="bSettings">conf</button>
-        <!-- <button type="button" id="bSave">save</button> -->
-        <button type="button" id="bReload">reload</button>
-        <button type="button" id="bSort">sort</button>
-        <button type="button" id="bDrag">drag</button></h1>
-    <form>
-        <input id="iAddTopic" type="text">
-        <button type="button" id="bAdd">Add</button>
+  <div id="einkauf" class="tabcontent">
+    <main>
+      <form>
+          <input id="iAddTopic" type="text">
+          <button type="button" id="bAdd">Add</button>
+      </form>
+
+      <ul id="list">
+
+      </ul>
+    </main>  
+  </div>
+
+  <div id="setup" class="tabcontent">
+    <div>
+      <h1>Einkaufsliste</h1>
+    <form id="fSettings">
+      <!-- ueber fremden Server nach gedacht, aber das duerfte Aerger mit same origin geben?
+        Nein bei einem Webservice dürfte das gehen, aber lasse ich jetzt.
+        <div><label for="iServer">Server:</label><input placeholder="https://xyz" id="iServer" type="text"></div>
+      -->
+      <!-- fsettings div ist flex container -->
+      <div id="fsInputs">
+        <label for="iListe">Liste:</label>
+        <input id="iListe" placeholder = "listName" type="text">
+        <div id="iListStatus">Status unknown</div>
+        <div><button type="button" id="bsToggleRegister" class="hidden">⇄</button></div>
+        <label for="iToken">Token:</label>
+        <input id="iToken" type="text">
+        <div>(eher nicht editieren)</div>
+      </div>  
+      <div id="fsButtons">
+        <button type="button" id="bsNew"> new </button>
+        <button type="button" id="bsClear"> Clear Local </button> <!-- manchmal im Entwicklungsprozess sinnvoll-->
+        <button type="button" id="bsCancel"> Cancel </button>
+        <button type="button" id="bsSave"> Save </button>
+      </div>
     </form>
-    <ul id="list">
-        
-    </ul>
-  </main>
-</body>
+      <div id="sZeile" class="center">(Clear Local i.d. Regel unnötig)</div>
+      <hr>
+      <p>Ein kleines Projekt mit Websockets, damit mehrere Personen sich eine Liste teilen können.
+        Es läuft auf einem Webserver, wenn Du diese Liste nutzt, kann der Admin die eingegebenen 
+        Daten sehen, diese werden auf dem Server gespeichert. Andere Personen sehen die Daten nicht, 
+        außer sie haben sich für die Liste registriert (s.o.).
+      </p>
+      <div>
+        Für die Nutzung gibt es zwei Möglichkeiten: 
+        <ul>
+          <li>Du kennst den Namen einer Liste und das Registrieren bei der 
+            Liste ist erlaubt. Du trägst die Daten oben ein und speicherst. Dann bekommst Du vollen Zugriff auf 
+            diese Liste. Das An- und Abschalten der Registrierung neuer Benutzer ist 
+            für jeden Nutzer der Liste möglich (Button ⇄) </li>
+          <li>Du legst eine neue Liste an, auf die Du dann den vollen Zugriff bekommst.
+            Diese Möglichkeit schalte ich nur ab, wenn Traffic oder Speicherplatz ein Problem werden, bestehende 
+            Listen sind davon nicht betroffen.</li>
+        </ul>
+        Der Zugriff erfolgt über eine Zeichenkette (Token), die jeder Nutzer 
+        in den lokalen Daten des Browser speichert. Das passiert automatisch, daher ist diese 
+        in der Regel auch unten nicht zu ändern sondern eingetragen.
+      </div>
+      <div>
+        Die Bedienung der Liste sollte selbsterklärend sein, zu erwähnen ist, das Drag-Opertionen (eine Spielerei)
+        nur lokal erfolgen und nicht auf dem Server gespeichert sind. Sort sortiert auch auf dem Server.
+      </div>
+    </div>
+  </div>
+  
+
+  
+  </body>
 </html>

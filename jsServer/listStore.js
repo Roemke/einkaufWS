@@ -70,5 +70,6 @@ module.exports =
     exists,
     get,
     getAll,
-    create
+    create,
+    save
 };
